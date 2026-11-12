@@ -2,6 +2,10 @@
 
 Тренажер правопису англійських слів: слухаєш слово, пишеш його з пам'яті, бачиш посимвольний розбір помилок і оцінку.
 
+**[▶ Відкрити застосунок](https://tanyakovchuk.github.io/spelling-practice/)**{target="_blank" rel="noopener noreferrer"}
+
+Онлайн-версія: <a href="https://tanyakovchuk.github.io/spelling-practice/" target="_blank" rel="noopener noreferrer">https://tanyakovchuk.github.io/spelling-practice/</a>
+
 ## Можливості
 
 - Озвучення слів через Web Speech API (вибір голосу, повільний режим).

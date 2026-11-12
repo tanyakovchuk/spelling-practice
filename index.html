@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spelling Practice</title>
+<style>
+  :root {
+    --bg: #f6f3ff; --card: #fff; --text: #2b2540; --muted: #7a7290;
+    --accent: #6c4cf5; --ok: #1f9d55; --ok-bg: #e3f7ec; --bad: #d63b3b; --bad-bg: #fde8e8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; justify-content: center; padding: 24px 16px;
+  }
+  .card {
+    width: 100%; max-width: 560px; background: var(--card); border-radius: 20px;
+    padding: 28px; box-shadow: 0 10px 30px rgba(60, 40, 140, .12); align-self: flex-start;
+  }
+  h1 { margin: 0 0 6px; font-size: 26px; }
+  p.hint { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+  textarea {
+    width: 100%; min-height: 180px; font-size: 18px; padding: 12px; border-radius: 12px;
+    border: 2px solid #ddd6ff; resize: vertical; font-family: inherit;
+  }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+  label.small { font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  select { font-size: 14px; padding: 4px; max-width: 100%; }
+  button {
+    font-size: 18px; padding: 12px 20px; border-radius: 12px; border: 0; cursor: pointer;
+    background: var(--accent); color: #fff; font-weight: 600;
+  }
+  button.secondary { background: #ece7ff; color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  .big-speak { font-size: 48px; width: 110px; height: 110px; border-radius: 50%; padding: 0; }
+  .center { text-align: center; }
+  .progress { color: var(--muted); font-size: 15px; margin-bottom: 18px; }
+  .bar { height: 8px; background: #ece7ff; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+  .bar > div { height: 100%; background: var(--accent); transition: width .3s; }
+  input.answer {
+    width: 100%; font-size: 30px; padding: 12px; text-align: center; border-radius: 12px;
+    border: 2px solid #ddd6ff; margin-top: 20px; letter-spacing: 2px;
+  }
+  input.answer:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  .result { margin-top: 20px; padding: 16px; border-radius: 14px; display: none; }
+  .result.ok { background: var(--ok-bg); display: block; }
+  .result.bad { background: var(--bad-bg); display: block; }
+  .result .title { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+  .letters { font-size: 30px; font-family: ui-monospace, Menlo, monospace; letter-spacing: 3px; margin: 6px 0; }
+  .lbl { font-size: 13px; color: var(--muted); }
+  .l-ok { color: var(--ok); }
+  .l-wrong { color: #fff; background: var(--bad); border-radius: 4px; }
+  .l-extra { color: var(--bad); text-decoration: line-through; }
+  .l-missing { color: var(--bad); border-bottom: 3px solid var(--bad); }
+  .l-fix { color: #fff; background: var(--ok); border-radius: 4px; }
+  ul.summary { list-style: none; padding: 0; font-size: 18px; }
+  ul.summary li { padding: 6px 0; border-bottom: 1px solid #eee; }
+  .hidden { display: none !important; }
+  .translation { margin-top: 10px; font-size: 20px; }
+  .translation b { color: var(--accent); }
+  .tr-muted { color: var(--muted); font-weight: normal; }
+  .round-note {
+    background: #fff4d6; color: #8a5a00; font-weight: 700; font-size: 17px;
+    padding: 10px 14px; border-radius: 12px; margin-bottom: 14px; text-align: center;
+  }
+  .form-error { color: var(--bad); font-size: 15px; margin-top: 8px; }
+  .stats { text-align: center; background: #f6f3ff; border-radius: 16px; padding: 18px; margin: 10px 0 6px; }
+  .grade { font-size: 34px; letter-spacing: 4px; }
+  .grade-label { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .grade-num { font-size: 17px; color: var(--muted); margin-top: 4px; }
+  .grade-num b { color: var(--accent); }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-top: 16px; }
+  .stat-grid div { background: #fff; border-radius: 12px; padding: 10px 6px; font-size: 13px; color: var(--muted); }
+  .stat-grid span { display: block; font-size: 26px; font-weight: 700; color: var(--text); }
+  .stat-grid span.ok { color: var(--ok); }
+  .stat-grid span.bad { color: var(--bad); }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- Екран 1: введення слів -->
+  <section id="setup">
+    <h1>📝 Spelling Practice</h1>
+    <p class="hint">Введи слова — з нового рядка, через кому або просто через пробіл.<br>
+      Переклад підтягнеться автоматично. Свій переклад можна дописати через тире: <b>friend - друг</b></p>
+    <textarea id="wordsInput" placeholder="because friend beautiful&#10;або&#10;because - тому що&#10;friend - друг" spellcheck="false"></textarea>
+    <div class="row">
+      <label class="small"><input type="checkbox" id="shuffle" checked> Перемішати</label>
+      <label class="small"><input type="checkbox" id="retryMistakes" checked> Повторити помилки в кінці</label>
+    </div>
+    <div class="row">
+      <label class="small">Голос: <select id="voiceSelect"></select></label>
+    </div>
+    <div class="row">
+      <button id="startBtn">Почати ▶</button>
+    </div>
+    <div class="form-error hidden" id="formError">Додай хоча б одне слово 🙂</div>
+  </section>
+
+  <!-- Екран 2: тренування -->
+  <section id="practice" class="hidden">
+    <div class="round-note hidden" id="roundNote"></div>
+    <div class="progress">
+      <span id="progressText"></span>
+      <div class="bar"><div id="progressBar"></div></div>
+    </div>
+    <div class="center">
+      <button class="big-speak" id="speakBtn" title="Послухати ще раз">🔊</button>
+      <div class="row" style="justify-content:center">
+        <button class="secondary" id="slowBtn">🐢 Повільніше</button>
+      </div>
+      <div class="row" style="justify-content:center">
+        <label class="small">🗣 Голос: <select id="voiceSelectPractice"></select></label>
+      </div>
+    </div>
+    <input class="answer" id="answer" type="text"
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           placeholder="Напиши слово…">
+    <div class="row" style="justify-content:center">
+      <button id="checkBtn">Перевірити ✔</button>
+      <button id="nextBtn" class="hidden">Далі ➜</button>
+      <button id="retryBtn" class="secondary hidden">Спробувати ще раз</button>
+    </div>
+    <div class="result" id="result"></div>
+  </section>
+
+  <!-- Екран 3: результат -->
+  <section id="done" class="hidden">
+    <h1>🎉 Готово!</h1>
+    <div id="stats" class="stats"></div>
+    <p id="score" style="font-size:20px"></p>
+    <ul class="summary" id="summary"></ul>
+    <div class="row">
+      <button id="againMistakesBtn">Потренувати помилки</button>
+      <button id="restartBtn" class="secondary">Новий список</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const STORAGE_KEY = 'spelling-words';
+
+  // ---------- Озвучка ----------
+  // Два однакові списки голосів: на старті і під час тренування — тримаємо їх синхронними
+  const VOICE_KEY = 'spelling-voice';
+  const voiceSelects = () => [$('voiceSelect'), $('voiceSelectPractice')];
+  let voices = [];
+  function loadVoices() {
+    voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+    let saved = '';
+    try { saved = localStorage.getItem(VOICE_KEY) || ''; } catch (e) {}
+    const current = voices[$('voiceSelect').value]?.name || saved;
+    let selected = voices.findIndex(v => v.name === current);
+    // за замовчуванням британський голос, якщо є
+    if (selected < 0) selected = Math.max(0, voices.findIndex(v => v.lang === 'en-GB'));
+    for (const sel of voiceSelects()) {
+      sel.innerHTML = '';
+      voices.forEach((v, i) => {
+        const o = document.createElement('option');
+        o.value = i;
+        o.textContent = `${v.name} (${v.lang})`;
+        sel.appendChild(o);
+      });
+      sel.value = selected;
+    }
+  }
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+
+  function onVoiceChange(e) {
+    const value = e.target.value;
+    voiceSelects().forEach(s => { s.value = value; });
+    try { localStorage.setItem(VOICE_KEY, voices[value]?.name || ''); } catch (e) {}
+    // під час тренування одразу промовляємо поточне слово новим голосом
+    if (!$('practice').classList.contains('hidden') && queue[idx]) {
+      speak(queue[idx].word);
+      $('answer').focus();
+    }
+  }
+  voiceSelects().forEach(s => s.addEventListener('change', onVoiceChange));
+
+  function speak(text, rate = 0.85) {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const v = voices[$('voiceSelect').value];
+    if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'en-GB'; }
+    u.rate = rate;
+    speechSynthesis.speak(u);
+  }
+
+  // ---------- Порівняння (вирівнювання Левенштейна) ----------
+  // Повертає масив операцій: {op:'ok'|'sub'|'extra'|'missing', typed, correct}
+  function diff(typed, correct) {
+    const a = [...typed], b = [...correct];
+    const n = a.length, m = b.length;
+    const d = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+    for (let i = 0; i <= n; i++) d[i][0] = i;
+    for (let j = 0; j <= m; j++) d[0][j] = j;
+    for (let i = 1; i <= n; i++)
+      for (let j = 1; j <= m; j++)
+        d[i][j] = Math.min(
+          d[i - 1][j] + 1,
+          d[i][j - 1] + 1,
+          d[i - 1][j - 1] + (a[i - 1].toLowerCase() === b[j - 1].toLowerCase() ? 0 : 1),
+        );
+    const ops = [];
+    let i = n, j = m;
+    while (i > 0 || j > 0) {
+      if (i > 0 && j > 0 && d[i][j] === d[i - 1][j - 1] + (a[i - 1].toLowerCase() === b[j - 1].toLowerCase() ? 0 : 1)) {
+        const same = a[i - 1].toLowerCase() === b[j - 1].toLowerCase();
+        ops.push({ op: same ? 'ok' : 'sub', typed: a[i - 1], correct: b[j - 1] });
+        i--; j--;
+      } else if (i > 0 && d[i][j] === d[i - 1][j] + 1) {
+        ops.push({ op: 'extra', typed: a[i - 1] });
+        i--;
+      } else {
+        ops.push({ op: 'missing', correct: b[j - 1] });
+        j--;
+      }
+    }
+    return ops.reverse();
+  }
+
+  const esc = (s) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function renderDiff(typed, correct) {
+    const ops = diff(typed, correct);
+    let mine = '', right = '';
+    for (const o of ops) {
+      if (o.op === 'ok') {
+        mine += `<span class="l-ok">${esc(o.typed)}</span>`;
+        right += `<span class="l-ok">${esc(o.correct)}</span>`;
+      } else if (o.op === 'sub') {
+        mine += `<span class="l-wrong">${esc(o.typed)}</span>`;
+        right += `<span class="l-fix">${esc(o.correct)}</span>`;
+      } else if (o.op === 'extra') {
+        mine += `<span class="l-extra">${esc(o.typed)}</span>`;
+      } else {
+        mine += `<span class="l-missing">&nbsp;</span>`;
+        right += `<span class="l-fix">${esc(o.correct)}</span>`;
+      }
+    }
+    const errors = ops.filter(o => o.op !== 'ok').length;
+    return { mine, right, errors };
+  }
+
+  // ---------- Переклад ----------
+  const TR_KEY = 'spelling-translations';
+  let trCache = {};
+  try { trCache = JSON.parse(localStorage.getItem(TR_KEY)) || {}; } catch (e) {}
+  const trPending = {};
+
+  // Свій переклад (з "word - переклад") має пріоритет, інакше — онлайн-переклад
+  function getTranslation(item) {
+    if (item.tr) return Promise.resolve(item.tr);
+    const k = item.word.toLowerCase();
+    if (trCache[k]) return Promise.resolve(trCache[k]);
+    if (!trPending[k]) {
+      const url = 'https://api.mymemory.translated.net/get?langpair=en|uk&q=' + encodeURIComponent(item.word);
+      trPending[k] = fetch(url)
+        .then(r => r.json())
+        .then(data => {
+          const t = data?.responseData?.translatedText;
+          if (!t || data.responseStatus !== 200 || t.toLowerCase() === k) return null;
+          trCache[k] = t.toLowerCase();
+          try { localStorage.setItem(TR_KEY, JSON.stringify(trCache)); } catch (e) {}
+          return trCache[k];
+        })
+        .catch(() => null)
+        .finally(() => { delete trPending[k]; });
+    }
+    return trPending[k];
+  }
+
+  function showTranslation(item) {
+    const el = $('trText');
+    if (!el) return;
+    el.innerHTML = '<span class="tr-muted">…</span>';
+    getTranslation(item).then(t => {
+      if ($('trText') !== el) return; // вже інше слово
+      el.innerHTML = t ? `<b>${esc(t)}</b>` : '<span class="tr-muted">переклад недоступний</span>';
+    });
+  }
+
+  // ---------- Стан ----------
+  let queue = [];        // слова в поточному раунді: {word, tr}
+  let idx = 0;
+  let results = {};      // word -> {item, firstTry: bool, attempts: n}
+  let mistakes = [];     // слова з помилками в цьому раунді
+  let checked = false;
+  let mistakesRound = false;
+
+  // Кожен рядок / фрагмент між комами:
+  //  - "word - переклад" (тире з пробілами, =, :) -> слово з власним перекладом
+  //  - інакше розбиваємо по пробілах на окремі слова
+  function parseWords(text) {
+    const seen = new Set();
+    const items = [];
+    const add = (word, tr) => {
+      word = word.trim();
+      const k = word.toLowerCase();
+      if (!word || seen.has(k)) return;
+      seen.add(k);
+      items.push({ word, tr: (tr || '').trim() });
+    };
+    for (const part of text.split(/[\n,;]+/)) {
+      const m = part.split(/\s+[-–—]\s+|\s*[=:]\s*/);
+      if (m.length >= 2 && m[0].trim()) add(m[0], m.slice(1).join(' '));
+      else part.split(/\s+/).forEach(w => add(w));
+    }
+    return items;
+  }
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function show(section) {
+    ['setup', 'practice', 'done'].forEach(s => $(s).classList.toggle('hidden', s !== section));
+  }
+
+  function startRound(items, resetResults) {
+    queue = $('shuffle').checked ? shuffle(items) : [...items];
+    idx = 0;
+    mistakes = [];
+    mistakesRound = false;
+    $('roundNote').classList.add('hidden');
+    if (resetResults) results = {};
+    show('practice');
+    loadWord();
+  }
+
+  function loadWord() {
+    checked = false;
+    const item = queue[idx];
+    const word = item.word;
+    if (!results[word]) results[word] = { item, firstTry: null, attempts: 0, successes: 0 };
+    getTranslation(item); // завантажуємо заздалегідь, щоб показати одразу після перевірки
+    $('progressText').textContent = `Слово ${idx + 1} з ${queue.length}`;
+    $('progressBar').style.width = `${(idx / queue.length) * 100}%`;
+    $('answer').value = '';
+    $('answer').disabled = false;
+    $('result').className = 'result';
+    $('result').innerHTML = '';
+    $('checkBtn').classList.remove('hidden');
+    $('nextBtn').classList.add('hidden');
+    $('retryBtn').classList.add('hidden');
+    $('answer').focus();
+    setTimeout(() => speak(word), 300);
+  }
+
+  function check() {
+    const typed = $('answer').value.trim();
+    if (!typed) { $('answer').focus(); return; }
+    const item = queue[idx];
+    const word = item.word;
+    const r = results[word];
+    const trHtml = `<div class="translation">🇺🇦 <span id="trText"></span></div>`;
+    r.attempts++;
+    checked = true;
+    $('answer').disabled = true;
+    $('checkBtn').classList.add('hidden');
+    $('nextBtn').classList.remove('hidden');
+
+    const correct = typed.toLowerCase() === word.toLowerCase();
+    if (r.firstTry === null) r.firstTry = correct;
+    if (correct) r.successes++;
+
+    const res = $('result');
+    if (correct) {
+      res.className = 'result ok';
+      res.innerHTML = `<div class="title">✅ Правильно!</div>
+        <div class="letters l-ok">${esc(word)}</div>${trHtml}`;
+      $('nextBtn').focus();
+    } else {
+      if (!mistakes.includes(item)) mistakes.push(item);
+      const { mine, right, errors } = renderDiff(typed, word);
+      res.className = 'result bad';
+      res.innerHTML = `<div class="title">❌ Майже! Помилок: ${errors}</div>
+        <div class="lbl">Ти написала:</div>
+        <div class="letters">${mine}</div>
+        <div class="lbl">Правильно:</div>
+        <div class="letters">${right}</div>${trHtml}`;
+      $('retryBtn').classList.remove('hidden');
+      $('retryBtn').focus();
+    }
+    showTranslation(item);
+  }
+
+  function retry() {
+    // слово ховаємо знову, щоб написати з пам'яті
+    checked = false;
+    $('answer').value = '';
+    $('answer').disabled = false;
+    $('result').className = 'result';
+    $('result').innerHTML = '';
+    $('checkBtn').classList.remove('hidden');
+    $('nextBtn').classList.add('hidden');
+    $('retryBtn').classList.add('hidden');
+    $('answer').focus();
+    speak(queue[idx].word);
+  }
+
+  function next() {
+    idx++;
+    if (idx < queue.length) { loadWord(); return; }
+    if ($('retryMistakes').checked && mistakes.length && !mistakesRound) {
+      // ще одне коло тільки по помилках
+      const again = [...mistakes];
+      queue = $('shuffle').checked ? shuffle(again) : again;
+      idx = 0;
+      mistakes = [];
+      mistakesRound = true;
+      $('roundNote').textContent = `💪 Ще раз слова з помилками (${queue.length})`;
+      $('roundNote').classList.remove('hidden');
+      loadWord();
+      return;
+    }
+    finish();
+  }
+
+  function finish() {
+    $('progressBar').style.width = '100%';
+    const words = Object.keys(results);
+    const ok = words.filter(w => results[w].firstTry).length;
+    const totalAttempts = words.reduce((s, w) => s + results[w].attempts, 0);
+    const totalSuccess = words.reduce((s, w) => s + results[w].successes, 0);
+    const pct = totalAttempts ? Math.round((totalSuccess / totalAttempts) * 100) : 0;
+    const grade12 = Math.max(1, Math.round((pct / 100) * 12));
+    const [stars, label] =
+      pct === 100 ? ['⭐⭐⭐⭐⭐', 'Ідеально!'] :
+      pct >= 85 ? ['⭐⭐⭐⭐', 'Чудово!'] :
+      pct >= 70 ? ['⭐⭐⭐', 'Добре!'] :
+      pct >= 50 ? ['⭐⭐', 'Непогано, тренуємось далі'] :
+                  ['⭐', 'Треба ще потренуватись 💪'];
+    $('stats').innerHTML = `
+      <div class="grade">${stars}</div>
+      <div class="grade-label">${label}</div>
+      <div class="grade-num">Оцінка: <b>${grade12}</b> з 12 · успішність <b>${pct}%</b></div>
+      <div class="stat-grid">
+        <div><span>${totalAttempts}</span>усього спроб</div>
+        <div><span class="ok">${totalSuccess}</span>успішних</div>
+        <div><span class="bad">${totalAttempts - totalSuccess}</span>з помилками</div>
+        <div><span>${ok}/${words.length}</span>з першої спроби</div>
+      </div>`;
+    $('score').textContent = '';
+    $('summary').innerHTML = words.map(w => {
+      const r = results[w];
+      const tr = r.item.tr || trCache[w.toLowerCase()];
+      return `<li>${r.firstTry ? '✅' : '🔁'} <b>${esc(w)}</b>${tr ? ` <span class="tr-muted">— ${esc(tr)}</span>` : ''}${r.firstTry ? '' : ` <span class="tr-muted">(спроб: ${r.attempts})</span>`}</li>`;
+    }).join('');
+    const wrong = words.filter(w => !results[w].firstTry).map(w => results[w].item);
+    $('againMistakesBtn').classList.toggle('hidden', wrong.length === 0);
+    $('againMistakesBtn').onclick = () => startRound(wrong, true);
+    show('done');
+  }
+
+  // ---------- Події ----------
+  try { $('wordsInput').value = localStorage.getItem(STORAGE_KEY) || ''; } catch (e) {}
+
+  $('startBtn').onclick = () => {
+    const words = parseWords($('wordsInput').value);
+    $('formError').classList.toggle('hidden', words.length > 0);
+    if (!words.length) { $('wordsInput').focus(); return; }
+    try { localStorage.setItem(STORAGE_KEY, $('wordsInput').value); } catch (e) {}
+    startRound(words, true);
+  };
+  $('speakBtn').onclick = () => { speak(queue[idx].word); $('answer').focus(); };
+  $('slowBtn').onclick = () => { speak(queue[idx].word, 0.5); $('answer').focus(); };
+  $('checkBtn').onclick = check;
+  $('nextBtn').onclick = next;
+  $('retryBtn').onclick = retry;
+  $('restartBtn').onclick = () => show('setup');
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || $('practice').classList.contains('hidden')) return;
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return; // вони самі обробляють Enter
+    e.preventDefault();
+    if (!checked) check(); else next();
+  });
+})();
+</script>
+</body>
+</html>
